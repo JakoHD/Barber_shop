@@ -6,10 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import { User, Settings, Scissors, ArrowLeft } from "lucide-react";
+import { User, Settings, Scissors, ArrowLeft, Edit3, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Reserva {
+  id: number;
+  nombre: string;
   fecha: string;
   tipoCorte: string;
 }
@@ -19,8 +21,10 @@ type Vista = "principal" | "servicios" | "barberos" | "galeria";
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [nombre, setNombre] = useState("");
   const [fecha, setFecha] = useState("");
   const [tipoCorte, setTipoCorte] = useState("Fade clásico");
+  const [editando, setEditando] = useState<Reserva | null>(null);
   const [vista, setVista] = useState<Vista>("principal");
   const [showListaReservas, setShowListaReservas] = useState(false);
   const [isUserRegistered, setIsUserRegistered] = useState(false);
@@ -60,12 +64,35 @@ export default function Home() {
     }
   }, []);
 
-  const handleReserva = () => {
-    if (!fecha) return;
-    const nuevaReserva: Reserva = { fecha, tipoCorte };
-    const nuevas = [...reservas, nuevaReserva];
-    setReservas(nuevas);
-    localStorage.setItem("reservas", JSON.stringify(nuevas));
+  const guardarEnLocalStorage = (lista: Reserva[]) => {
+    setReservas(lista);
+    localStorage.setItem("reservas", JSON.stringify(lista));
+  };
+
+  const handleGuardar = () => {
+    if (!nombre || !fecha) return alert("Completa todos los campos");
+
+    if (editando) {
+      const actualizadas = reservas.map((r) =>
+        r.id === editando.id ? { ...r, nombre, fecha, tipoCorte } : r
+      );
+      guardarEnLocalStorage(actualizadas);
+      setEditando(null);
+    } else {
+      const nuevaReserva: Reserva = {
+        id: Date.now(),
+        nombre,
+        fecha,
+        tipoCorte,
+      };
+      const nuevas = [...reservas, nuevaReserva];
+      guardarEnLocalStorage(nuevas);
+    }
+
+    // Limpiar campos y cerrar modal
+    setNombre("");
+    setFecha("");
+    setTipoCorte("Fade clásico");
     setShowModal(false);
   };
 
@@ -95,6 +122,21 @@ export default function Home() {
     // Aquí podrías hacer una llamada a la API para actualizar en el servidor
     console.log('Perfil actualizado:', userData);
     setShowProfileModal(false);
+  };
+
+  const handleEditar = (reserva: Reserva) => {
+    setEditando(reserva);
+    setNombre(reserva.nombre);
+    setFecha(reserva.fecha);
+    setTipoCorte(reserva.tipoCorte);
+    setShowModal(true);
+  };
+
+  const handleEliminar = (id: number) => {
+    if (confirm('¿Estás seguro de que quieres eliminar esta reserva?')) {
+      const actualizadas = reservas.filter(r => r.id !== id);
+      guardarEnLocalStorage(actualizadas);
+    }
   };
 
   const sliderSettings = {
@@ -134,7 +176,6 @@ export default function Home() {
         <>
           <section className="snap-start h-screen flex flex-col items-center justify-center relative bg-linear-to-b from-black via-gray-900 to-black">
             <div className="absolute inset-0 bg-[url('/textura-metalica.png')] bg-cover bg-center opacity-10" />
-
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -148,7 +189,6 @@ export default function Home() {
                 className="object-contain drop-shadow-[0_0_20px_rgba(34,197,94,0.5)] mb-8"
               />
             </motion.div>
-
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ repeat: Infinity, duration: 1.5 }}
@@ -167,8 +207,8 @@ export default function Home() {
             style={{ backgroundImage: "url('/fondo.jpg')" }}
           >
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
             <div className="relative z-10 w-full max-w-md mt-8 sm:mt-10">
+
               {/* Carrusel */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -223,15 +263,23 @@ export default function Home() {
                     exit={{ opacity: 0, y: 10 }}
                     className="mt-3 bg-black/70 border border-green-400/20 rounded-xl p-3 text-sm text-gray-300 space-y-2 max-h-[200px] overflow-y-auto"
                   >
-                    {reservas.map((r, i) => (
+                    {reservas.map((r) => (
                       <div
-                        key={i}
+                        key={r.id}
                         className="flex justify-between items-center border-b border-gray-700/50 pb-1"
                       >
-                        <span>
-                          {r.fecha} —{" "}
-                          <span className="text-green-400">{r.tipoCorte}</span>
-                        </span>
+                        <div>
+                          <span className="font-semibold text-green-400">{r.nombre}</span>{" "}
+                          — {r.fecha} — {r.tipoCorte}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditar(r)} className="text-blue-400 hover:text-blue-300">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleEliminar(r.id)} className="text-red-400 hover:text-red-300">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </motion.div>
@@ -271,7 +319,7 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Perfil / ajustes */}
+              {/* Perfil */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -349,7 +397,7 @@ export default function Home() {
         </PantallaSecundaria>
       )}
 
-      {/* --- MODAL DE NUEVA RESERVA --- */}
+      {/* --- MODAL DE NUEVA / EDITAR RESERVA --- */}
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -365,10 +413,18 @@ export default function Home() {
               className="bg-gray-900 border border-green-400/40 p-6 rounded-2xl shadow-[0_0_25px_rgba(34,197,94,0.6)] w-full max-w-sm"
             >
               <h3 className="text-green-400 font-bold text-lg mb-4 text-center">
-                Reservar nueva cita
+                {editando ? "Editar cita" : "Reservar nueva cita"}
               </h3>
 
-              <label className="block text-sm text-gray-300 mb-2">
+              <label className="block text-sm text-gray-300 mb-2">Nombre:</label>
+              <input
+                type="text"
+                className="w-full p-2 rounded-md text-black focus:ring-2 focus:ring-green-500 outline-none"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+              />
+
+              <label className="block text-sm text-gray-300 mt-4 mb-2">
                 Selecciona la fecha:
               </label>
               <input
@@ -393,17 +449,23 @@ export default function Home() {
 
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={handleReserva}
+                  onClick={handleGuardar}
                   className="flex-1 bg-green-500 text-black font-semibold py-2 rounded-md hover:bg-green-600 transition-all"
                 >
-                  Guardar
+                  {editando ? "Actualizar" : "Guardar"}
                 </button>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 bg-gray-700 text-white font-semibold py-2 rounded-md hover:bg-gray-600 transition-all"
-                >
-                  Cancelar
-                </button>
+                  <button
+                    onClick={() => {
+                      setShowModal(false);
+                      setEditando(null);
+                      setNombre("");
+                      setFecha("");
+                      setTipoCorte("Fade clásico");
+                    }}
+                    className="flex-1 bg-gray-700 text-white font-semibold py-2 rounded-md hover:bg-gray-600 transition-all"
+                  >
+                    Cancelar
+                  </button>
               </div>
             </motion.div>
           </motion.div>

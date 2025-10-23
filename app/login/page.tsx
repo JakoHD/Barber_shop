@@ -1,11 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import styles from './styles.module.css';
+import styles from '../2/styles.module.css';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function Login() {
+export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -41,11 +41,14 @@ export default function Login() {
                 return;
             }
 
-            // Redirigir o guardar token (ej. en localStorage)
+            // Guardar datos del usuario en localStorage
+            localStorage.setItem('userLoggedIn', 'true');
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', data.username || 'Usuario');
+            localStorage.setItem('userPhone', data.phone_number || '');
+            
             console.log('Inicio de sesión exitoso:', data);
-            // Aquí podrías guardar el token JWT en localStorage o cookies
-            // localStorage.setItem('token', data.token);
-            router.push('/dashboard'); // Ejemplo de redirección
+            router.push('/'); // Redirigir a la página principal
 
         } catch (err) {
             setError('Error de red o del servidor.');
