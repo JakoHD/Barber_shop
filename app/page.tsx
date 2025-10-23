@@ -1,7 +1,11 @@
+import Inicio from "./1/Inicio";
 import Register from "./2/page";
 
 export default function Home() {
   return (
-    <Register />
+    <div>
+      <Inicio />
+      <Register />
+    </div>
   );
 }
