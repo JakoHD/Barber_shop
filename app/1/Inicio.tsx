@@ -10,10 +10,11 @@ import { User, Settings, Scissors, ArrowLeft, Edit3, Trash2 } from "lucide-react
 import { useRouter } from "next/navigation";
 
 interface Reserva {
-  id: number;
+  _id: string;
   nombre: string;
   fecha: string;
   tipoCorte: string;
+  email?: string;
 }
 
 type Vista = "principal" | "servicios" | "barberos" | "galeria";
@@ -38,25 +39,14 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const saved = localStorage.getItem("reservas");
-    if (saved) setReservas(JSON.parse(saved));
+    // Cargar reservas desde la API
+    loadReservations();
     
-    // Verificar si el usuario está logueado
-    const userLoggedIn = localStorage.getItem('userLoggedIn');
+    // Cargar datos del usuario
+    loadUserData();
+    
+    // Verificar si viene del registro para mostrar modal
     const showModalFlag = localStorage.getItem('showReservationModal');
-    
-    if (userLoggedIn === 'true') {
-      setIsUserRegistered(true);
-      // Cargar datos del usuario
-      setUserData({
-        name: localStorage.getItem('userName') || '',
-        email: localStorage.getItem('userEmail') || '',
-        phone: localStorage.getItem('userPhone') || '',
-        password: ''
-      });
-    }
-    
-    // Mostrar modal automáticamente si viene del registro
     if (showModalFlag === 'true') {
       setShowModal(true);
       // Limpiar la bandera para que no se muestre en futuras cargas
@@ -64,36 +54,76 @@ export default function Home() {
     }
   }, []);
 
-  const guardarEnLocalStorage = (lista: Reserva[]) => {
-    setReservas(lista);
-    localStorage.setItem("reservas", JSON.stringify(lista));
+  const loadReservations = async () => {
+    try {
+      const response = await fetch('/api/reservations');
+      const data = await response.json();
+      if (response.ok) {
+        setReservas(data.reservations);
+      }
+    } catch (error) {
+      console.error('Error al cargar reservas:', error);
+    }
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!nombre || !fecha) return alert("Completa todos los campos");
 
-    if (editando) {
-      const actualizadas = reservas.map((r) =>
-        r.id === editando.id ? { ...r, nombre, fecha, tipoCorte } : r
-      );
-      guardarEnLocalStorage(actualizadas);
-      setEditando(null);
-    } else {
-      const nuevaReserva: Reserva = {
-        id: Date.now(),
-        nombre,
-        fecha,
-        tipoCorte,
-      };
-      const nuevas = [...reservas, nuevaReserva];
-      guardarEnLocalStorage(nuevas);
-    }
+    try {
+      const userEmail = localStorage.getItem('userEmail') || '';
+      
+      if (editando) {
+        // Actualizar reserva existente
+        const response = await fetch('/api/reservations', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: editando._id,
+            nombre,
+            fecha,
+            tipoCorte
+          }),
+        });
 
-    // Limpiar campos y cerrar modal
-    setNombre("");
-    setFecha("");
-    setTipoCorte("Fade clásico");
+        if (response.ok) {
+          await loadReservations(); // Recargar las reservas
+          setEditando(null);
+        } else {
+          alert('Error al actualizar la reserva');
+        }
+      } else {
+        // Crear nueva reserva
+        const response = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nombre,
+            fecha,
+            tipoCorte,
+            email: userEmail
+          }),
+        });
+
+        if (response.ok) {
+          await loadReservations(); // Recargar las reservas
+        } else {
+          alert('Error al crear la reserva');
+        }
+      }
+
+      // Limpiar campos y cerrar modal
+      setNombre("");
+      setFecha("");
+      setTipoCorte("Fade clásico");
     setShowModal(false);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al guardar la reserva');
+    }
   };
 
   const handleAgendarCita = () => {
@@ -113,15 +143,43 @@ export default function Home() {
     router.push('/login');
   };
 
+  const loadUserData = () => {
+    const userLoggedIn = localStorage.getItem('userLoggedIn');
+    if (userLoggedIn === 'true') {
+      setIsUserRegistered(true);
+      setUserData({
+        name: localStorage.getItem('userName') || '',
+        email: localStorage.getItem('userEmail') || '',
+        phone: localStorage.getItem('userPhone') || '',
+        password: ''
+      });
+    }
+  };
+
   const handleProfileUpdate = () => {
+    // Validar campos requeridos
+    if (!userData.name.trim() || !userData.email.trim()) {
+      alert('Nombre y email son campos obligatorios');
+      return;
+    }
+
     // Actualizar datos en localStorage
     localStorage.setItem('userName', userData.name);
     localStorage.setItem('userEmail', userData.email);
     localStorage.setItem('userPhone', userData.phone);
     
+    // Recargar datos del usuario para reflejar los cambios
+    loadUserData();
+    
+    // Limpiar campo de contraseña
+    setUserData(prev => ({ ...prev, password: '' }));
+    
     // Aquí podrías hacer una llamada a la API para actualizar en el servidor
     console.log('Perfil actualizado:', userData);
     setShowProfileModal(false);
+    
+    // Mostrar mensaje de confirmación
+    alert('Perfil actualizado exitosamente');
   };
 
   const handleEditar = (reserva: Reserva) => {
@@ -132,10 +190,22 @@ export default function Home() {
     setShowModal(true);
   };
 
-  const handleEliminar = (id: number) => {
+  const handleEliminar = async (id: string) => {
     if (confirm('¿Estás seguro de que quieres eliminar esta reserva?')) {
-      const actualizadas = reservas.filter(r => r.id !== id);
-      guardarEnLocalStorage(actualizadas);
+      try {
+        const response = await fetch(`/api/reservations?id=${id}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          await loadReservations(); // Recargar las reservas
+        } else {
+          alert('Error al eliminar la reserva');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al eliminar la reserva');
+      }
     }
   };
 
@@ -263,23 +333,23 @@ export default function Home() {
                     exit={{ opacity: 0, y: 10 }}
                     className="mt-3 bg-black/70 border border-green-400/20 rounded-xl p-3 text-sm text-gray-300 space-y-2 max-h-[200px] overflow-y-auto"
                   >
-                    {reservas.map((r) => (
+                     {reservas.map((r) => (
                       <div
-                        key={r.id}
+                         key={r._id}
                         className="flex justify-between items-center border-b border-gray-700/50 pb-1"
                       >
-                        <div>
-                          <span className="font-semibold text-green-400">{r.nombre}</span>{" "}
-                          — {r.fecha} — {r.tipoCorte}
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEditar(r)} className="text-blue-400 hover:text-blue-300">
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleEliminar(r.id)} className="text-red-400 hover:text-red-300">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                         <div>
+                           <span className="font-semibold text-green-400">{r.nombre}</span>{" "}
+                           — {r.fecha} — {r.tipoCorte}
+                         </div>
+                         <div className="flex gap-2">
+                           <button onClick={() => handleEditar(r)} className="text-blue-400 hover:text-blue-300">
+                             <Edit3 className="w-4 h-4" />
+                           </button>
+                           <button onClick={() => handleEliminar(r._id)} className="text-red-400 hover:text-red-300">
+                             <Trash2 className="w-4 h-4" />
+                           </button>
+                         </div>
                       </div>
                     ))}
                   </motion.div>
@@ -419,7 +489,7 @@ export default function Home() {
               <label className="block text-sm text-gray-300 mb-2">Nombre:</label>
               <input
                 type="text"
-                className="w-full p-2 rounded-md text-black focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
               />
@@ -429,7 +499,7 @@ export default function Home() {
               </label>
               <input
                 type="date"
-                className="w-full p-2 rounded-md text-black focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
               />
@@ -438,7 +508,7 @@ export default function Home() {
                 Tipo de corte:
               </label>
               <select
-                className="w-full p-2 rounded-md text-black focus:ring-2 focus:ring-green-500 outline-none"
+                className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
                 value={tipoCorte}
                 onChange={(e) => setTipoCorte(e.target.value)}
               >
@@ -462,7 +532,7 @@ export default function Home() {
                       setFecha("");
                       setTipoCorte("Fade clásico");
                     }}
-                    className="flex-1 bg-gray-700 text-white font-semibold py-2 rounded-md hover:bg-gray-600 transition-all"
+                    className="flex-1 bg-gray-700 text-black font-semibold py-2 rounded-md hover:bg-gray-600 transition-all"
                   >
                     Cancelar
                   </button>
@@ -498,9 +568,10 @@ export default function Home() {
                   </label>
                   <input
                     type="text"
-                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full p-2 rounded-md text-white bg-gray-800 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                     value={userData.name}
                     onChange={(e) => setUserData({...userData, name: e.target.value})}
+                    placeholder="Ingresa tu nombre"
                   />
                 </div>
 
@@ -510,9 +581,10 @@ export default function Home() {
                   </label>
                   <input
                     type="email"
-                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full p-2 rounded-md text-white bg-gray-800 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                     value={userData.email}
                     onChange={(e) => setUserData({...userData, email: e.target.value})}
+                    placeholder="Ingresa tu email"
                   />
                 </div>
 
@@ -522,9 +594,10 @@ export default function Home() {
                   </label>
                   <input
                     type="tel"
-                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full p-2 rounded-md text-white bg-gray-800 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                     value={userData.phone}
                     onChange={(e) => setUserData({...userData, phone: e.target.value})}
+                    placeholder="Ingresa tu teléfono"
                   />
                 </div>
 
@@ -534,7 +607,7 @@ export default function Home() {
                   </label>
                   <input
                     type="password"
-                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full p-2 rounded-md text-white bg-gray-800 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
                     value={userData.password}
                     onChange={(e) => setUserData({...userData, password: e.target.value})}
                     placeholder="Dejar vacío para mantener la actual"

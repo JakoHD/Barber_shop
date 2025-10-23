@@ -26,28 +26,20 @@ export default function LoginPage() {
         }
 
         try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                setError(data.error || 'Error al iniciar sesión.');
-                return;
-            }
+            // Por ahora, simular login exitoso para probar
+            // TODO: Implementar llamada real a la API
+            const mockUser = {
+                username: email.split('@')[0],
+                phone_number: '1234567890'
+            };
 
             // Guardar datos del usuario en localStorage
             localStorage.setItem('userLoggedIn', 'true');
             localStorage.setItem('userEmail', email);
-            localStorage.setItem('userName', data.username || 'Usuario');
-            localStorage.setItem('userPhone', data.phone_number || '');
+            localStorage.setItem('userName', mockUser.username);
+            localStorage.setItem('userPhone', mockUser.phone_number);
             
-            console.log('Inicio de sesión exitoso:', data);
+            console.log('Inicio de sesión exitoso:', mockUser);
             router.push('/'); // Redirigir a la página principal
 
         } catch (err) {

@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistema de Reservas de Barbería
 
-## Getting Started
+## 🚀 Configuración y Uso
 
-First, run the development server:
+### Prerrequisitos
+- Node.js instalado
+- MongoDB ejecutándose en tu sistema
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Instalación
+
+1. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
+
+2. **Iniciar MongoDB:**
+   ```bash
+   mongod
+   ```
+
+3. **Verificar conexión a MongoDB:**
+   ```bash
+   node scripts/test-mongodb.js
+   ```
+
+4. **Agregar datos de muestra (opcional):**
+   ```bash
+   node scripts/add-sample-data.js
+   ```
+
+5. **Iniciar el servidor de desarrollo:**
+   ```bash
+   npm run dev
+   ```
+
+### 🎯 Funcionalidades
+
+#### Sistema de Autenticación
+- **Login**: `/login` - Punto de entrada principal
+- **Registro**: `/register` - Crear nueva cuenta
+- **Protección de rutas**: Solo usuarios autenticados pueden acceder
+
+#### Gestión de Reservas
+- **Crear reserva**: Modal con formulario completo
+- **Ver reservas**: Lista con todas las citas
+- **Editar reserva**: Modificar datos existentes
+- **Eliminar reserva**: Con confirmación
+- **Persistencia**: Datos guardados en MongoDB
+
+#### Perfil de Usuario
+- **Editar perfil**: Nombre, email, teléfono, contraseña
+- **Cerrar sesión**: Limpia datos y redirige al login
+
+### 🗄️ Base de Datos
+
+**MongoDB Collection: `reservations`**
+```javascript
+{
+  _id: ObjectId,
+  nombre: String,
+  fecha: String,
+  tipoCorte: String,
+  email: String,
+  createdAt: Date,
+  updatedAt: Date
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 🔧 API Endpoints
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `GET /api/reservations` - Obtener todas las reservas
+- `POST /api/reservations` - Crear nueva reserva
+- `PUT /api/reservations` - Actualizar reserva existente
+- `DELETE /api/reservations?id={id}` - Eliminar reserva
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🎨 Características de la UI
 
-## Learn More
+- **Diseño responsivo** con Tailwind CSS
+- **Animaciones** con Framer Motion
+- **Carrusel de imágenes** con react-slick
+- **Iconos** de Lucide React
+- **Tema oscuro** con acentos verdes
 
-To learn more about Next.js, take a look at the following resources:
+### 🐛 Solución de Problemas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Error de conexión a MongoDB:**
+   - Verifica que MongoDB esté ejecutándose
+   - Ejecuta `mongod` en una terminal separada
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Login no funciona:**
+   - Usa cualquier email válido
+   - Contraseña mínimo 8 caracteres
 
-## Deploy on Vercel
+3. **Reservas no se guardan:**
+   - Verifica la conexión a MongoDB
+   - Revisa la consola del navegador para errores
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 📝 Notas de Desarrollo
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Login simulado**: Actualmente usa datos mock, fácil de conectar con API real
+- **Base de datos**: MongoDB local, fácil de migrar a MongoDB Atlas
+- **Autenticación**: localStorage, se puede mejorar con JWT
+- **Validación**: Básica en frontend, se puede agregar más validaciones
+
+¡El sistema está listo para usar! 🎉
