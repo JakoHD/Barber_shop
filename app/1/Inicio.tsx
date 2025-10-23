@@ -7,6 +7,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { User, Settings, Scissors, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Reserva {
   fecha: string;
@@ -22,10 +23,41 @@ export default function Home() {
   const [tipoCorte, setTipoCorte] = useState("Fade clásico");
   const [vista, setVista] = useState<Vista>("principal");
   const [showListaReservas, setShowListaReservas] = useState(false);
+  const [isUserRegistered, setIsUserRegistered] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: ''
+  });
+  const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem("reservas");
     if (saved) setReservas(JSON.parse(saved));
+    
+    // Verificar si el usuario está logueado
+    const userLoggedIn = localStorage.getItem('userLoggedIn');
+    const showModalFlag = localStorage.getItem('showReservationModal');
+    
+    if (userLoggedIn === 'true') {
+      setIsUserRegistered(true);
+      // Cargar datos del usuario
+      setUserData({
+        name: localStorage.getItem('userName') || '',
+        email: localStorage.getItem('userEmail') || '',
+        phone: localStorage.getItem('userPhone') || '',
+        password: ''
+      });
+    }
+    
+    // Mostrar modal automáticamente si viene del registro
+    if (showModalFlag === 'true') {
+      setShowModal(true);
+      // Limpiar la bandera para que no se muestre en futuras cargas
+      localStorage.removeItem('showReservationModal');
+    }
   }, []);
 
   const handleReserva = () => {
@@ -35,6 +67,34 @@ export default function Home() {
     setReservas(nuevas);
     localStorage.setItem("reservas", JSON.stringify(nuevas));
     setShowModal(false);
+  };
+
+  const handleAgendarCita = () => {
+    if (isUserRegistered) {
+      setShowModal(true);
+    } else {
+      router.push('/register');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userLoggedIn');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userRegistered');
+    router.push('/login');
+  };
+
+  const handleProfileUpdate = () => {
+    // Actualizar datos en localStorage
+    localStorage.setItem('userName', userData.name);
+    localStorage.setItem('userEmail', userData.email);
+    localStorage.setItem('userPhone', userData.phone);
+    
+    // Aquí podrías hacer una llamada a la API para actualizar en el servidor
+    console.log('Perfil actualizado:', userData);
+    setShowProfileModal(false);
   };
 
   const sliderSettings = {
@@ -51,9 +111,9 @@ export default function Home() {
   const barberos = [
     { nombre: "Carlos FadeMaster", img: "/barbero1.jpg" },
     { nombre: "Luis Blade", img: "/barbero2.jpg" },
-    { nombre: "Javi Fresh", img: "/barbero3.jpg" },
-    { nombre: "Andrés Styles", img: "/barbero1.jpg" },
-    { nombre: "Diego Sharp", img: "/barbero2.jpg" },
+    { nombre: "Javi Fresh", img: "/barbero1.jpg" },
+    { nombre: "Andrés Styles", img: "/barbero2.jpg" },
+    { nombre: "Diego Sharp", img: "/barbero1.jpg" },
   ];
 
   const servicios = [
@@ -65,14 +125,14 @@ export default function Home() {
     "Cejas + Barba",
   ];
 
-  const galeria = ["barbero1.jpg", "barbero2.jpg", "barbero3.jpg"];
+  const galeria = ["barbero1.jpg", "barbero2.jpg"];
 
   return (
     <div className="h-screen w-full overflow-y-scroll snap-y snap-mandatory bg-black text-white font-sans">
       {/* --- PANTALLA INICIAL --- */}
       {vista === "principal" && (
         <>
-          <section className="snap-start h-screen flex flex-col items-center justify-center relative bg-gradient-to-b from-black via-gray-900 to-black">
+          <section className="snap-start h-screen flex flex-col items-center justify-center relative bg-linear-to-b from-black via-gray-900 to-black">
             <div className="absolute inset-0 bg-[url('/textura-metalica.png')] bg-cover bg-center opacity-10" />
 
             <motion.div
@@ -104,7 +164,7 @@ export default function Home() {
           {/* --- PANTALLA PRINCIPAL --- */}
           <section
             className="snap-start min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 bg-cover bg-center relative"
-            style={{ backgroundImage: "url('/fondo-barberia.jpg')" }}
+            style={{ backgroundImage: "url('/fondo.jpg')" }}
           >
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
@@ -186,11 +246,11 @@ export default function Home() {
                 className="mt-6 text-center"
               >
                 <button
-                  onClick={() => setShowModal(true)}
+                  onClick={handleAgendarCita}
                   className="w-full py-3 text-lg font-semibold bg-black/70 border border-green-400 text-green-400 rounded-xl shadow-[0_0_20px_rgba(34,197,94,0.6)] hover:bg-green-500 hover:text-black transition-all flex items-center justify-center gap-2"
                 >
                   <Scissors className="w-5 h-5" />
-                  RESERVAR UN NUEVO CORTE
+                  {isUserRegistered ? "AGENDAR CITA" : "REGISTRARSE PARA AGENDAR"}
                 </button>
               </motion.div>
 
@@ -218,7 +278,10 @@ export default function Home() {
                 transition={{ delay: 0.7 }}
                 className="mt-6 text-center"
               >
-                <button className="w-full flex items-center justify-center gap-3 py-3 bg-black/70 border border-green-400/40 text-green-400 rounded-md text-sm font-semibold hover:bg-green-500 hover:text-black transition-all shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+                <button 
+                  onClick={() => setShowProfileModal(true)}
+                  className="w-full flex items-center justify-center gap-3 py-3 bg-black/70 border border-green-400/40 text-green-400 rounded-md text-sm font-semibold hover:bg-green-500 hover:text-black transition-all shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                >
                   <User className="w-5 h-5" />
                   PERFIL · AJUSTES
                   <Settings className="w-5 h-5" />
@@ -340,6 +403,104 @@ export default function Home() {
                   className="flex-1 bg-gray-700 text-white font-semibold py-2 rounded-md hover:bg-gray-600 transition-all"
                 >
                   Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- MODAL DE EDICIÓN DE PERFIL --- */}
+      <AnimatePresence>
+        {showProfileModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-gray-900 border border-green-400/40 p-6 rounded-2xl shadow-[0_0_25px_rgba(34,197,94,0.6)] w-full max-w-md"
+            >
+              <h3 className="text-green-400 font-bold text-lg mb-4 text-center">
+                Editar Perfil
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">
+                    Nombre:
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    value={userData.name}
+                    onChange={(e) => setUserData({...userData, name: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">
+                    Correo electrónico:
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    value={userData.email}
+                    onChange={(e) => setUserData({...userData, email: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">
+                    Teléfono:
+                  </label>
+                  <input
+                    type="tel"
+                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    value={userData.phone}
+                    onChange={(e) => setUserData({...userData, phone: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">
+                    Nueva contraseña (opcional):
+                  </label>
+                  <input
+                    type="password"
+                    className="w-full p-2 rounded-md text-white focus:ring-2 focus:ring-green-500 outline-none"
+                    value={userData.password}
+                    onChange={(e) => setUserData({...userData, password: e.target.value})}
+                    placeholder="Dejar vacío para mantener la actual"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleProfileUpdate}
+                  className="flex-1 bg-green-500 text-black font-semibold py-2 rounded-md hover:bg-green-600 transition-all"
+                >
+                  Guardar Cambios
+                </button>
+                <button
+                  onClick={() => setShowProfileModal(false)}
+                  className="flex-1 bg-gray-700 text-white font-semibold py-2 rounded-md hover:bg-gray-600 transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <button
+                  onClick={handleLogout}
+                  className="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700 transition-all"
+                >
+                  Cerrar Sesión
                 </button>
               </div>
             </motion.div>

@@ -1,13 +1,24 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Inicio from "./1/Inicio";
-import Register from "./2/page";
-import Login from "./2/page";
 
 export default function Home() {
-  return (
-    <div>
-      <Inicio />
-      <Register />
-      <Login/>
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem('userLoggedIn');
+    if (isLoggedIn !== 'true') {
+      router.push('/login');
+    }
+  }, [router]);
+
+  const isLoggedIn = typeof window !== 'undefined' ? localStorage.getItem('userLoggedIn') === 'true' : false;
+
+  if (!isLoggedIn) {
+    return null; // O un componente de carga
+  }
+
+  return <Inicio />;
 }
