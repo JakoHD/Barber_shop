@@ -1,0 +1,20 @@
+.container {
+    background-image: url('/generic-background.svg');
+    /* Replace with your generic image */
+    background-size: cover;
+    background-position: center;
+}
+
+.form-container {
+    backdrop-filter: blur(10px);
+    /* Adjust blur as needed */
+    background-color: rgba(103, 101, 101, 0.5);
+}
+
+.glow-effect {
+  box-shadow: 0 0 10px 3px rgba(0, 255, 0, 0.7);
+}
+
+.text-glow-effect {
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.9);
+}
